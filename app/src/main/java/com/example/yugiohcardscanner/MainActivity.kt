@@ -41,10 +41,24 @@ class MainActivity : ComponentActivity() {
     private lateinit var imageCapture: ImageCapture
     private val textRecognitionHelper = TextRecognitionHelper()
 
+    companion object {
+        const val CAMERA_PERMISSION_REQUEST_CODE = 1001
+    }
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (isCameraPermissionGranted()) {
+            setupContent()
+        } else {
+            requestCameraPermission()
+        }
+
+    }
+
+
+    private fun setupContent() {
         setContent {
             YuGiOhCardScannerTheme {
                 // A surface container using the 'background' color from the theme
@@ -59,7 +73,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun isCameraPermissionGranted() =
+        ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+    private fun requestCameraPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.CAMERA),
+            CAMERA_PERMISSION_REQUEST_CODE
+        )
+    }
 }
+
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -72,8 +101,6 @@ fun MainScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val cameraSelector = remember { CameraSelector.DEFAULT_BACK_CAMERA }
-
-    val CAMERA_PERMISSION_REQUEST_CODE = 1001
 
     Column(
         modifier = Modifier
@@ -110,25 +137,14 @@ fun MainScreen(
                 .padding(4.dp)
         )
 
-        // Camera Preview
-        if (isCameraOpen) {
-            val cameraPermission = Manifest.permission.CAMERA
-            val context = LocalContext.current
-
-            if(ContextCompat.checkSelfPermission(context, cameraPermission) == PackageManager.PERMISSION_GRANTED){
-                CameraPreview(
-                    modifier = Modifier.fillMaxSize(),
-                    cameraSelector = cameraSelector,
-                    onCameraOpened = { /* Camera is opened, you can capture images or do other camera-related tasks here */ },
-                    onError = { errorMessage ->
-                        // Handle camera errors
-                        recognizedText = errorMessage
-                    }
-                )
-            } else {
-                ActivityCompat.requestPermissions(context as Activity, arrayOf(cameraPermission), CAMERA_PERMISSION_REQUEST_CODE)
+        CameraPreview(
+            modifier = Modifier.fillMaxSize(),
+            cameraSelector = cameraSelector,
+            onCameraOpened = { /* Camera is opened, you can capture images or do other camera-related tasks here */ },
+            onError = { errorMessage ->
+                // Handle camera errors
+                recognizedText = errorMessage
             }
-
-        }
+        )
     }
 }
